@@ -1,0 +1,36 @@
+import { useState, useEffect } from 'react';
+import './App.css';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import TeamListing from './TeamListing';
+import TeamCreate from './TeamCreate';
+import LeagueCreate from './LeagueCreate';
+import TeamEdit from './TeamEdit';
+import TeamDetail from './TeamDetail';
+import HomePage from './homePage';
+import DivisionCreate from './DivisionCreate';
+import LeagueEdit from './LeagueEdit';
+import TeamsView from './TeamsView';
+import TimeSlotCreate from './TimeslotCreate';
+
+function App() {
+  return (
+    <div className="App">
+      <BrowserRouter>
+        <Routes>
+          <Route path='/' element={<HomePage />}></Route>
+          <Route path='/league/create' element={<LeagueCreate />}></Route>
+          <Route path='/league/:id/create' element={<DivisionCreate />}></Route>
+          <Route path='/team/detail/:teamid' element={<TeamDetail />}></Route>
+          <Route path='/team/edit/:teamid' element={<TeamEdit />}></Route>
+          <Route path='/league/:id' element={<LeagueEdit />}></Route>
+          <Route path = '/teams/:divisionID/league/:leagueID' element={<TeamsView/>}></Route>
+          <Route path = '/league/:leagueID/division/:divisionID/team' element={<TeamCreate/>}></Route>
+          <Route path = '/league/:leagueID/division/:divisionID/timeslot' element={<TimeSlotCreate/>}></Route>
+        </Routes>
+      </BrowserRouter>
+    </div>
+  );
+
+}
+
+export default App;
