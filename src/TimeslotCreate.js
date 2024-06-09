@@ -13,7 +13,7 @@ const TimeSlotCreate = () => {
 
     const [id, idChange] = useState("");
     const [week, weekChange] = useState(0);
-    const [date, dateChange] = useState(new Date());
+    const [date, dateChange] = useState(new Date()); 
     const [startTime, startTimeChange] = useState('10:00');
     const [endTime, endTimeChange] = useState('10:00');
     const [facility, facilityChange] = useState("");
