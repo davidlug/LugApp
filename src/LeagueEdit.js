@@ -7,7 +7,6 @@ const LeagueEdit = () => {
     const { id } = useParams();
 
     const [divisionData, setDivisionData] = useState([]);
-    const [divisionName, setDivisionName] = useState("");
     const [leagueName, setLeagueName] = useState("");
     const navigate = useNavigate();
     
@@ -17,7 +16,6 @@ const LeagueEdit = () => {
             .then((resp) => {
                 setDivisionData(resp.divisions);
                 setLeagueName(resp.leagueName);
-                setDivisionName()
             })
             .catch((err) => {
                 console.log(err.message);
@@ -42,7 +40,7 @@ const LeagueEdit = () => {
                                 <td>{division.divisionName}</td>
                                 <td>{division.teams ? division.teams.length : 0}</td>  
                                 <td>
-                                <button onClick={() => navigate(`/teams/${division.divisionID}/league/${id}`)} className="btn btn-success">View Teams</button>
+                                <button onClick={() => navigate(`/league/${id}/division/${division.divisionID}/teams`)} className="btn btn-success">View Teams</button>
                                 </td>
                             </tr>
                         ))

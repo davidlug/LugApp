@@ -4,7 +4,6 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import './Teams.css';
 import lugLogo from './lugLogo.png';
 
-
 class Matchup {
     constructor(homeTeam, awayTeam) {
         this.homeTeam = homeTeam;
@@ -22,7 +21,7 @@ const TeamsView = () => {
     const [generatedSchedule, setGeneratedSchedule] = useState([]);
 
     useEffect(() => {
-        fetch(`http://localhost:8080/teams/${divisionID}`)
+        fetch(`http://localhost:8080/leagues/${leagueID}/divisions/${divisionID}/teams`)
             .then((res) => res.json())
             .then((resp) => {
                 setDivisionName(resp.divisionName);
@@ -31,10 +30,10 @@ const TeamsView = () => {
             .catch((err) => {
                 console.log(err.message);
             });
-    }, [divisionID]);
+    }, [leagueID, divisionID]); // Add leagueID and divisionID as dependencies
 
     useEffect(() => {
-        fetch(`http://localhost:8080/timeslots/${divisionID}`)
+        fetch(`http://localhost:8080/leagues/${leagueID}/divisions/${divisionID}/timeslots`)
             .then((res) => res.json())
             .then((resp) => {
                 setTimeSlots(resp.timeslots || []);
@@ -42,21 +41,20 @@ const TeamsView = () => {
             .catch((err) => {
                 console.log(err.message);
             });
-    }, [divisionID]);
+    }, [leagueID, divisionID]); // Add leagueID and divisionID as dependencies
 
     const handleBack = () => {
         navigate(-1);
     };
 
-
-    const RemoveTeam=(leagueID, divisionID, teamID, teamName)=>{
-        if(window.confirm("Do you want to delete "+teamName+"?")){
-            fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/team/${teamID}`,{
-                method:"DELETE",
-            }).then((res)=>{
+    const RemoveTeam = (leagueID, divisionID, teamID, teamName) => {
+        if (window.confirm("Do you want to delete " + teamName + "?")) {
+            fetch(`http://localhost:8080/leagues/${leagueID}/divisions/${divisionID}/teams/${teamID}`, {
+                method: "DELETE",
+            }).then((res) => {
                 alert("Team deleted successfully.");
                 window.location.reload();
-            }).catch((err)=>{
+            }).catch((err) => {
                 console.log(err.message)
             })
         }
@@ -67,51 +65,47 @@ const TeamsView = () => {
     }
 
     const generateScheduleAlgorithm = (matchups, scheduleByWeeks, teamSet) => {
-        
         let seasonMatchups = [...matchups];
-    
+
         for (let k = 0; k < scheduleByWeeks.length; k++) {
             let weekMatchups = [...seasonMatchups];
             let teamCopy = [...teamSet];
-            
+
             for (let i = 0; i < scheduleByWeeks[k].length; i++) {
                 if (weekMatchups.length === 0) {
                     return scheduleByWeeks;
                 }
-                
+
                 let index = Math.floor(Math.random() * weekMatchups.length);
                 let chosenMatch = weekMatchups[index];
                 scheduleByWeeks[k][i].match = chosenMatch;
-                
-                teamSet = teamSet.filter(team => 
+
+                teamSet = teamSet.filter(team =>
                     ![chosenMatch.homeTeam, chosenMatch.awayTeam].includes(team)
                 );
-                
-                weekMatchups = weekMatchups.filter(match => 
+
+                weekMatchups = weekMatchups.filter(match =>
                     ![chosenMatch.homeTeam, chosenMatch.awayTeam].includes(match.awayTeam) &&
                     ![chosenMatch.homeTeam, chosenMatch.awayTeam].includes(match.homeTeam)
                 );
-                
-                seasonMatchups = seasonMatchups.filter(match => 
+
+                seasonMatchups = seasonMatchups.filter(match =>
                     !(
                         (match.homeTeam === chosenMatch.homeTeam && match.awayTeam === chosenMatch.awayTeam) ||
                         (match.homeTeam === chosenMatch.awayTeam && match.awayTeam === chosenMatch.homeTeam)
                     )
                 );
             }
-            
+
             teamSet = [...teamCopy];
         }
-        
+
         return scheduleByWeeks;
     }
 
-   
-
     const generateSchedule = () => {
-       // var teamCopy = [...teams];
-       var teamCopy = teams.map(team => ({ ...team, weight: 0 }));
-       var matchups = matchupGenerator(teamCopy);
+        var teamCopy = teams.map(team => ({ ...team, weight: 0 }));
+        var matchups = matchupGenerator(teamCopy);
         var scheduleByWeeks = [];
         for (var i = 0; i < timeslots[timeslots.length - 1].week; i++) {
             scheduleByWeeks.push([]);
@@ -119,12 +113,12 @@ const TeamsView = () => {
         for (var j = 0; j < timeslots.length; j++) {
             scheduleByWeeks[timeslots[j].week - 1].push(timeslots[j]);
         }
-    
+
         for (var i = 0; i < scheduleByWeeks.length; i++) {
             scheduleByWeeks[i].sort((a, b) => {
                 const [aHours, aMinutes] = a.startTime.split(':').map(Number);
                 const [bHours, bMinutes] = b.startTime.split(':').map(Number);
-    
+
                 if (aHours === bHours) {
                     return aMinutes - bMinutes;
                 }
@@ -135,139 +129,89 @@ const TeamsView = () => {
             }
         }
         var returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
-    
-        console.log(1);
-        console.log(returnSchedule);
-        //console.log(returnSchedule[1][1].match.homeTeam.teamName);
-    
-    let goodSchedule = false;
-    while(!goodSchedule)
-    {
-        goodSchedule = true;
-        for(let k = 0; k < returnSchedule.length; k++)
-            {
-                for(let i = 0; i < returnSchedule[k].length; i++)
-                    {
-                        if(returnSchedule[k][i].match == null)
-                            {
-                                //console.log("Null Detected");
-                                returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
-                                goodSchedule = false;
-                                break;
-                            }
+
+        let goodSchedule = false;
+        while (!goodSchedule) {
+            goodSchedule = true;
+            for (let k = 0; k < returnSchedule.length; k++) {
+                for (let i = 0; i < returnSchedule[k].length; i++) {
+                    if (returnSchedule[k][i].match == null) {
+                        returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
+                        goodSchedule = false;
+                        break;
                     }
-                    if(!goodSchedule)
-                        {
-                            break;
-                        }
+                }
+                if (!goodSchedule) {
+                    break;
+                }
             }
-    }
-    let balancedSchedule = false;
-    let dupeTeam = true;
+        }
 
-    if(goodSchedule == true)
-        {
-            while(balancedSchedule == false)
-                {
-                   // balancedSchedule = true;
-                    for(var k = 0; k < returnSchedule.length; k++)
-                        {
-                            for(var i = 0; i < returnSchedule[k].length; i++)
-                                {
-                                    for(var p = 0; p < teamCopy.length; p++)
-                                        {
-                                            //console.log(i);
-                                            //console.log(p);
-                                            if(teamCopy[p].teamName.valueOf() == returnSchedule[k][i].match.homeTeam.teamName.valueOf() ||teamCopy[p].teamName.valueOf() == returnSchedule[k][i].match.awayTeam.teamName.valueOf() )
-                                                {
-                                                    teamCopy[p].weight += returnSchedule[k][i].weight;
-                                                }
-                                        }
-                                }
-    
-                        }
-    
-                        var weights = [];
-                        for(var r = 0; r < teamCopy.length; r++)
-                            {
-                                weights.push(teamCopy[r].weight/(returnSchedule.length-2));
-                                console.log(teamCopy);
-                                console.log("Weight "+teamCopy[r].weight);
-                                console.log(returnSchedule.length);
-                               // console.log(teamCopy[r].weight/returnSchedule.length);
+        let balancedSchedule = false;
+        let dupeTeam = true;
+
+        if (goodSchedule == true) {
+            while (balancedSchedule == false) {
+                for (var k = 0; k < returnSchedule.length; k++) {
+                    for (var i = 0; i < returnSchedule[k].length; i++) {
+                        for (var p = 0; p < teamCopy.length; p++) {
+                            if (teamCopy[p].teamName.valueOf() == returnSchedule[k][i].match.homeTeam.teamName.valueOf() || teamCopy[p].teamName.valueOf() == returnSchedule[k][i].match.awayTeam.teamName.valueOf()) {
+                                teamCopy[p].weight += returnSchedule[k][i].weight;
                             }
-                            var minWeight = weights[0];
-                            var maxWeight = weights[0];
-                            for(var l = 1; l < weights.length; l++)
-                                {
-                                    if(weights[l] < minWeight)
-                                        {
-                                            minWeight = weights[l];
-                                        }
-                                        if(weights[l] > maxWeight)
-                                            {
-                                                maxWeight = weights[l];
-                                            }
-                                }
-                                if(maxWeight - minWeight > 0.35)
-                                    {
-                                        console.log(maxWeight - minWeight);
-                                        for(var a =0; a < teamCopy.length; a++)
-                                            {
-                                                teamCopy[a].weight = 0;
-                                            }
-                                            returnSchedule =  generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
-                                    }
-                                    else
-                                    {
-                                        balancedSchedule = true;
-                                        console.log("Pass");
-                                        console.log(weights);
-                                    }
-                }
-        }
-        
-
-
-
-
-    while(dupeTeam == true)
-        {
-            dupeTeam = false;
-            for(var k = 0; k < returnSchedule.length; k++)
-                {
-                    var teamsCopy = [];
-                    for(var i = 0; i < returnSchedule[k].length; i++)
-                        {
-                            teamsCopy.push(returnSchedule[k][i].match.awayTeam.teamName);
-                            teamsCopy.push(returnSchedule[k][i].match.homeTeam.teamName);
                         }
-                    var s = new Set();
-                    for (let teamName of teamsCopy) {
-                        if (s.has(teamName)) {
-                            dupeTeam = true;
-                            console.log('Duplicate team found:'+ teamName);
-                            break;
-                        }
-                        else
-                        {
-                            s.add(teamName);
-                        }
-                        //console.log(s);
                     }
-                    if(dupeTeam == true)
-                        {
-                            returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
-                        }
                 }
+
+                var weights = [];
+                for (var r = 0; r < teamCopy.length; r++) {
+                    weights.push(teamCopy[r].weight / (returnSchedule.length - 2));
+                }
+                var minWeight = weights[0];
+                var maxWeight = weights[0];
+                for (var l = 1; l < weights.length; l++) {
+                    if (weights[l] < minWeight) {
+                        minWeight = weights[l];
+                    }
+                    if (weights[l] > maxWeight) {
+                        maxWeight = weights[l];
+                    }
+                }
+                if (maxWeight - minWeight > 0.35) {
+                    for (var a = 0; a < teamCopy.length; a++) {
+                        teamCopy[a].weight = 0;
+                    }
+                    returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
+                } else {
+                    balancedSchedule = true;
+                }
+            }
         }
 
-    
-        console.log(2);
-        console.log(returnSchedule);
+        while (dupeTeam == true) {
+            dupeTeam = false;
+            for (var k = 0; k < returnSchedule.length; k++) {
+                var teamsCopy = [];
+                for (var i = 0; i < returnSchedule[k].length; i++) {
+                    teamsCopy.push(returnSchedule[k][i].match.awayTeam.teamName);
+                    teamsCopy.push(returnSchedule[k][i].match.homeTeam.teamName);
+                }
+                var s = new Set();
+                for (let teamName of teamsCopy) {
+                    if (s.has(teamName)) {
+                        dupeTeam = true;
+                        break;
+                    } else {
+                        s.add(teamName);
+                    }
+                }
+                if (dupeTeam == true) {
+                    returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
+                }
+            }
+        }
+
         setGeneratedSchedule(returnSchedule);
     }
-    
 
     const matchupGenerator = (teams) => {
         let matchups = [];
@@ -303,8 +247,7 @@ const TeamsView = () => {
                                 <td>{team.Players}</td>
                                 <td>{team.Division}</td>
                                 <td>
-                                <a onClick={() => { RemoveTeam(leagueID, divisionID, team.id, team.teamName) }} className="btn btn-danger">Remove</a>
-
+                                    <a onClick={() => { RemoveTeam(leagueID, divisionID, team.id, team.teamName) }} className="btn btn-danger">Remove</a>
                                 </td>
                             </tr>
                         ))
@@ -349,53 +292,49 @@ const TeamsView = () => {
             </table>
             <Link to={`/league/${leagueID}/division/${divisionID}/timeslot`} className="btn btn-success">Add New Timeslot (+)</Link>
 
-            
-
             <div>
                 <button className="btn btn-success" type="button" onClick={generateSchedule}>Generate Schedule</button>
             </div>
             {generatedSchedule.length > 0 && (
-            <div>
-                <h2>Schedule</h2>
-                <table className='scheduleTable'>
-                    <thead>
-                        <tr>
-                            <th>Week</th>
-                            <th>Date</th>
-                            <th>Start Time</th>
-                            <th>End Time</th>
-                            <th>Home Team</th>
-                            <th>Away Team</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                {generatedSchedule.map((week, weekIndex) => (
-                    <>
-                        <tr key={`divider-${weekIndex}`} className="divider">
-                            <td colSpan="6">Week {weekIndex + 1}</td>
-                        </tr>
-                        {week.map((timeslot, timeslotIndex) => (
-                            <tr key={`${weekIndex}-${timeslotIndex}`}>
-                                <td>{timeslot.week}</td>
-                                <td>{timeslot.date}</td>
-                                <td>{timeslot.startTime}</td>
-                                <td>{timeslot.endTime}</td>
-                                <td>{timeslot.match ? timeslot.match.homeTeam.teamName : 'TBD'}</td>
-                                <td>{timeslot.match ? timeslot.match.awayTeam.teamName : 'TBD'}</td>
+                <div>
+                    <h2>Schedule</h2>
+                    <table className='scheduleTable'>
+                        <thead>
+                            <tr>
+                                <th>Week</th>
+                                <th>Date</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                                <th>Home Team</th>
+                                <th>Away Team</th>
                             </tr>
-                        ))}
-                    </>
-                ))}
-            </tbody>
-                </table>
-            </div>
-        )}
-
-<div>
+                        </thead>
+                        <tbody>
+                            {generatedSchedule.map((week, weekIndex) => (
+                                <>
+                                    <tr key={`divider-${weekIndex}`} className="divider">
+                                        <td colSpan="6">Week {weekIndex + 1}</td>
+                                    </tr>
+                                    {week.map((timeslot, timeslotIndex) => (
+                                        <tr key={`${weekIndex}-${timeslotIndex}`}>
+                                            <td>{timeslot.week}</td>
+                                            <td>{timeslot.date}</td>
+                                            <td>{timeslot.startTime}</td>
+                                            <td>{timeslot.endTime}</td>
+                                            <td>{timeslot.match ? timeslot.match.homeTeam.teamName : 'TBD'}</td>
+                                            <td>{timeslot.match ? timeslot.match.awayTeam.teamName : 'TBD'}</td>
+                                        </tr>
+                                    ))}
+                                </>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+            <div>
                 <button className="btn btn-danger" type="button" onClick={handleBack}>Back</button>
             </div>
-
-                    </div>
+        </div>
     );
 }
 

@@ -23,7 +23,7 @@ function App() {
           <Route path='/team/detail/:teamid' element={<TeamDetail />}></Route>
           <Route path='/team/edit/:teamid' element={<TeamEdit />}></Route>
           <Route path='/league/:id' element={<LeagueEdit />}></Route>
-          <Route path = '/teams/:divisionID/league/:leagueID' element={<TeamsView/>}></Route>
+          <Route path="/league/:leagueID/division/:divisionID/teams" element={<TeamsView />} />
           <Route path = '/league/:leagueID/division/:divisionID/team' element={<TeamCreate/>}></Route>
           <Route path = '/league/:leagueID/division/:divisionID/timeslot' element={<TimeSlotCreate/>}></Route>
         </Routes>

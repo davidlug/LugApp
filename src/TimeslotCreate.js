@@ -35,8 +35,8 @@ const TimeSlotCreate = () => {
             return res.json();
         }).then((data) => {
             alert("Timeslot saved successfully.");
+            navigate(-1);
             console.log("Response Data: ", data);
-            navigate("/");
         }).catch((err) => {
             console.log(err.message);
         });
@@ -104,7 +104,7 @@ const TimeSlotCreate = () => {
                                     </div>
                                 </div>
                                 <div className="form-group">
-                                    <button type="submit" className="btn btn-primary" onClick={handleBack}>Submit</button>
+                                    <button type="submit" className="btn btn-primary">Submit</button>
                                     <button className="btn btn-success" type="button" onClick={handleBack}>Back</button>
                                 </div>
                             </div>
