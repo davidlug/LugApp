@@ -40,7 +40,7 @@ const LeagueEdit = () => {
                                 <td>{division.divisionName}</td>
                                 <td>{division.teams ? division.teams.length : 0}</td>  
                                 <td>
-                                <button onClick={() => navigate(`/league/${id}/division/${division.divisionID}/teams`)} className="btn btn-success">View Teams</button>
+                                <button onClick={() => navigate(`/league/${id}/division/${division.divisionID}/teams`)} className="btn btn-success">View Division</button>
                                 </td>
                             </tr>
                         ))
