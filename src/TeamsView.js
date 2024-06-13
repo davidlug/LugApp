@@ -1,24 +1,133 @@
 import './schedule.css';
-import { useEffect, useState } from "react";
+import { useEffect, useState, React } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import './Teams.css';
 import lugLogo from './lugLogo.png';
-
-class Matchup {
-    constructor(homeTeam, awayTeam) {
-        this.homeTeam = homeTeam;
-        this.awayTeam = awayTeam;
-    }
-}
+import * as XLSX from 'xlsx';
+import Slider from '@mui/material/Slider';
 
 const TeamsView = () => {
     const { leagueID, divisionID } = useParams();
     const [divisionName, setDivisionName] = useState("");
     const [teams, setTeams] = useState([]);
-    const [showNewTable, setShowNewTable] = useState(false);
     const navigate = useNavigate();
     const [timeslots, setTimeSlots] = useState([]);
+   // const [data, setData] = React.useState(null);
+    const [data, setData] = useState("");
+
     const [generatedSchedule, setGeneratedSchedule] = useState([]);
+
+    const handleFileUpload = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+    
+        reader.onload = (event) => {
+            const workbook = XLSX.read(event.target.result, { type: 'binary' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const sheetData = XLSX.utils.sheet_to_json(sheet);
+    
+            fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/teams`,{
+                method:"POST",
+                headers:{"Content-type":"application/json"},
+                body:JSON.stringify(sheetData)
+            }).then(response => response.json())
+              .then(data => { 
+                  console.log('Success:', data);
+                  alert("Teams successfully added"); 
+                  window.location.reload();
+                })
+              .catch(error => {
+                  console.error('Error:', error);
+              });
+        };
+    
+        reader.readAsBinaryString(file);
+    };
+
+    const timeslotFileUpload = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+            const workbook = XLSX.read(event.target.result, { type: 'binary' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const sheetData = XLSX.utils.sheet_to_json(sheet);
+            console.log(sheetData);
+            const formattedData = sheetData.map(item => {
+                const date = ExcelDateToJSDate(item.date);
+                const startTime = ExcelDateToJSDate(item.startTime);
+                const endTime = ExcelDateToJSDate(item.endTime);
+
+                return {
+                    ...item,
+                    date: formatDate(date), // Format as "YYYY-MM-DD"
+                    startTime: formatTime(startTime),
+                    endTime: formatTime(endTime)
+                };
+            });
+
+
+            fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/timeslots`,{
+                method:"POST",
+                headers:{"Content-type":"application/json"},
+                body:JSON.stringify(formattedData)
+            }).then(response => response.json())
+              .then(data => {
+                  console.log('Success:', data);
+                  alert("Timeslots successfully added");
+                  window.location.reload();
+                })
+              .catch(error => {
+                  console.error('Error:', error);
+              });
+
+            setData(formattedData);
+        };
+        reader.readAsBinaryString(file);
+
+
+    }
+    
+    const ExcelDateToJSDate = (serial) => {
+        const utc_days = Math.floor(serial - 25569);
+        const utc_value = utc_days * 86400;
+        const date_info = new Date(utc_value * 1000);
+    
+        const fractional_day = serial - Math.floor(serial) + 0.0000001;
+    
+        let total_seconds = Math.floor(86400 * fractional_day);
+        const seconds = total_seconds % 60;
+    
+        total_seconds -= seconds;
+        const hours = Math.floor(total_seconds / (60 * 60));
+        const minutes = Math.floor(total_seconds / 60) % 60;
+    
+        date_info.setHours(hours);
+        date_info.setMinutes(minutes);
+        date_info.setSeconds(seconds);
+    
+        return date_info;
+    };
+    
+    const formatTime = (date) => {
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+        const formattedMinutes = minutes.toString().padStart(2, '0');
+        return `${formattedHours}:${formattedMinutes} ${ampm}`;
+    };
+    
+    const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-indexed
+        const day = date.getDate().toString().padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+    
+
 
     useEffect(() => {
         fetch(`http://localhost:8080/leagues/${leagueID}/divisions/${divisionID}/teams`)
@@ -30,7 +139,7 @@ const TeamsView = () => {
             .catch((err) => {
                 console.log(err.message);
             });
-    }, [leagueID, divisionID]); // Add leagueID and divisionID as dependencies
+    }, [leagueID, divisionID]);
 
     useEffect(() => {
         fetch(`http://localhost:8080/leagues/${leagueID}/divisions/${divisionID}/timeslots`)
@@ -41,7 +150,7 @@ const TeamsView = () => {
             .catch((err) => {
                 console.log(err.message);
             });
-    }, [leagueID, divisionID]); // Add leagueID and divisionID as dependencies
+    }, [leagueID, divisionID]);
 
     const handleBack = () => {
         navigate(-1);
@@ -55,177 +164,21 @@ const TeamsView = () => {
                 alert("Team deleted successfully.");
                 window.location.reload();
             }).catch((err) => {
-                console.log(err.message)
-            })
-        }
-    }
-
-    const displayTable = () => {
-        setShowNewTable(true);
-    }
-
-    const generateScheduleAlgorithm = (matchups, scheduleByWeeks, teamSet) => {
-        let seasonMatchups = [...matchups];
-
-        for (let k = 0; k < scheduleByWeeks.length; k++) {
-            let weekMatchups = [...seasonMatchups];
-            let teamCopy = [...teamSet];
-
-            for (let i = 0; i < scheduleByWeeks[k].length; i++) {
-                if (weekMatchups.length === 0) {
-                    return scheduleByWeeks;
-                }
-
-                let index = Math.floor(Math.random() * weekMatchups.length);
-                let chosenMatch = weekMatchups[index];
-                scheduleByWeeks[k][i].match = chosenMatch;
-
-                teamSet = teamSet.filter(team =>
-                    ![chosenMatch.homeTeam, chosenMatch.awayTeam].includes(team)
-                );
-
-                weekMatchups = weekMatchups.filter(match =>
-                    ![chosenMatch.homeTeam, chosenMatch.awayTeam].includes(match.awayTeam) &&
-                    ![chosenMatch.homeTeam, chosenMatch.awayTeam].includes(match.homeTeam)
-                );
-
-                seasonMatchups = seasonMatchups.filter(match =>
-                    !(
-                        (match.homeTeam === chosenMatch.homeTeam && match.awayTeam === chosenMatch.awayTeam) ||
-                        (match.homeTeam === chosenMatch.awayTeam && match.awayTeam === chosenMatch.homeTeam)
-                    )
-                );
-            }
-
-            teamSet = [...teamCopy];
-        }
-
-        return scheduleByWeeks;
-    }
-
-    const generateSchedule = () => {
-        var teamCopy = teams.map(team => ({ ...team, weight: 0 }));
-        var matchups = matchupGenerator(teamCopy);
-        var scheduleByWeeks = [];
-        for (var i = 0; i < timeslots[timeslots.length - 1].week; i++) {
-            scheduleByWeeks.push([]);
-        }
-        for (var j = 0; j < timeslots.length; j++) {
-            scheduleByWeeks[timeslots[j].week - 1].push(timeslots[j]);
-        }
-
-        for (var i = 0; i < scheduleByWeeks.length; i++) {
-            scheduleByWeeks[i].sort((a, b) => {
-                const [aHours, aMinutes] = a.startTime.split(':').map(Number);
-                const [bHours, bMinutes] = b.startTime.split(':').map(Number);
-
-                if (aHours === bHours) {
-                    return aMinutes - bMinutes;
-                }
-                return aHours - bHours;
+                console.log(err.message);
             });
-            for (var j = 0; j < scheduleByWeeks[i].length; j++) {
-                scheduleByWeeks[i][j].weight = j;
-            }
         }
-        var returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
+    };
 
-        let goodSchedule = false;
-        while (!goodSchedule) {
-            goodSchedule = true;
-            for (let k = 0; k < returnSchedule.length; k++) {
-                for (let i = 0; i < returnSchedule[k].length; i++) {
-                    if (returnSchedule[k][i].match == null) {
-                        returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
-                        goodSchedule = false;
-                        break;
-                    }
-                }
-                if (!goodSchedule) {
-                    break;
-                }
-            }
-        }
-
-        let balancedSchedule = false;
-        let dupeTeam = true;
-
-        if (goodSchedule == true) {
-            while (balancedSchedule == false) {
-                for (var k = 0; k < returnSchedule.length; k++) {
-                    for (var i = 0; i < returnSchedule[k].length; i++) {
-                        for (var p = 0; p < teamCopy.length; p++) {
-                            if (teamCopy[p].teamName.valueOf() == returnSchedule[k][i].match.homeTeam.teamName.valueOf() || teamCopy[p].teamName.valueOf() == returnSchedule[k][i].match.awayTeam.teamName.valueOf()) {
-                                teamCopy[p].weight += returnSchedule[k][i].weight;
-                            }
-                        }
-                    }
-                }
-
-                var weights = [];
-                for (var r = 0; r < teamCopy.length; r++) {
-                    weights.push(teamCopy[r].weight / (returnSchedule.length - 2));
-                }
-                var minWeight = weights[0];
-                var maxWeight = weights[0];
-                for (var l = 1; l < weights.length; l++) {
-                    if (weights[l] < minWeight) {
-                        minWeight = weights[l];
-                    }
-                    if (weights[l] > maxWeight) {
-                        maxWeight = weights[l];
-                    }
-                }
-                if (maxWeight - minWeight > 0.35) {
-                    for (var a = 0; a < teamCopy.length; a++) {
-                        teamCopy[a].weight = 0;
-                    }
-                    returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
-                } else {
-                    balancedSchedule = true;
-                }
-            }
-        }
-
-        while (dupeTeam == true) {
-            dupeTeam = false;
-            for (var k = 0; k < returnSchedule.length; k++) {
-                var teamsCopy = [];
-                for (var i = 0; i < returnSchedule[k].length; i++) {
-                    teamsCopy.push(returnSchedule[k][i].match.awayTeam.teamName);
-                    teamsCopy.push(returnSchedule[k][i].match.homeTeam.teamName);
-                }
-                var s = new Set();
-                for (let teamName of teamsCopy) {
-                    if (s.has(teamName)) {
-                        dupeTeam = true;
-                        break;
-                    } else {
-                        s.add(teamName);
-                    }
-                }
-                if (dupeTeam == true) {
-                    returnSchedule = generateScheduleAlgorithm(matchups, scheduleByWeeks, teams);
-                }
-            }
-        }
-
-        setGeneratedSchedule(returnSchedule);
-    }
-
-    const matchupGenerator = (teams) => {
-        let matchups = [];
-        for (var i = 0; i < teams.length; i++) {
-            var homeTeam = teams[i];
-            for (var j = 0; j < teams.length; j++) {
-                if (i !== j) {
-                    var awayTeam = teams[j];
-                    matchups.push(new Matchup(homeTeam, awayTeam));
-                }
-            }
-        }
-        return matchups;
-    }
+    const fetchLeagues = () => {
+        fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/schedule`)
+            .then((res) => res.json())
+            .then((resp) => {
+                setGeneratedSchedule(resp.schedule || []);
+            })
+            .catch((err) => {
+                console.log(err.message);
+            });
+    };
 
     return (
         <div style={{ position: 'relative', alignItems: 'center', top: '20%', display: 'flex', flexDirection: 'column', textAlign: 'center' }}>
@@ -248,6 +201,8 @@ const TeamsView = () => {
                                 <td>{team.Division}</td>
                                 <td>
                                     <a onClick={() => { RemoveTeam(leagueID, divisionID, team.id, team.teamName) }} className="btn btn-danger">Remove</a>
+                                    <Link to={`/league/${leagueID}/division/${divisionID}/team/${team.id}`} className="btn btn-primary">Edit Team</Link>
+
                                 </td>
                             </tr>
                         ))
@@ -258,6 +213,13 @@ const TeamsView = () => {
                     )}
                 </tbody>
             </table>
+
+            <div>
+                <input type="file" onChange={handleFileUpload} />
+            </div>
+
+
+
             <Link to={`/league/${leagueID}/division/${divisionID}/team`} className="btn btn-success">Add New Team (+)</Link>
             <h1>Time Slots</h1>
             <table>
@@ -291,46 +253,56 @@ const TeamsView = () => {
                 </tbody>
             </table>
             <Link to={`/league/${leagueID}/division/${divisionID}/timeslot`} className="btn btn-success">Add New Timeslot (+)</Link>
+            <div>
+                <input type="file" onChange={timeslotFileUpload} />
+                {data && (
+                    <div>
+                        <h2>Imported Data:</h2>
+                        <pre>{JSON.stringify(data, null, 2)}</pre>
+                    </div>
+                )}
+            </div>
+
+            
+
 
             <div>
-                <button className="btn btn-success" type="button" onClick={generateSchedule}>Generate Schedule</button>
+                <button className="btn btn-success" type="button" onClick={fetchLeagues}>Generate Schedule</button>
             </div>
-            {generatedSchedule.length > 0 && (
-                <div>
-                    <h2>Schedule</h2>
-                    <table className='scheduleTable'>
-                        <thead>
-                            <tr>
-                                <th>Week</th>
-                                <th>Date</th>
-                                <th>Start Time</th>
-                                <th>End Time</th>
-                                <th>Home Team</th>
-                                <th>Away Team</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {generatedSchedule.map((week, weekIndex) => (
-                                <>
-                                    <tr key={`divider-${weekIndex}`} className="divider">
-                                        <td colSpan="6">Week {weekIndex + 1}</td>
+            <div>
+                <h2>Schedule</h2>
+                <table className='scheduleTable'>
+                    <thead>
+                        <tr>
+                            <th>Week</th>
+                            <th>Date</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Home Team</th>
+                            <th>Away Team</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {generatedSchedule.map((week, weekIndex) => (
+                            <>
+                                <tr key={`divider-${weekIndex}`} className="divider">
+                                    <td colSpan="6">Week {weekIndex + 1}</td>
+                                </tr>
+                                {week.map((timeslot, timeslotIndex) => (
+                                    <tr key={`${weekIndex}-${timeslotIndex}`}>
+                                        <td>{timeslot.week}</td>
+                                        <td>{timeslot.date}</td>
+                                        <td>{timeslot.startTime}</td>
+                                        <td>{timeslot.endTime}</td>
+                                        <td>{timeslot.match ? timeslot.match.homeTeam.teamName : 'TBD'}</td>
+                                        <td>{timeslot.match ? timeslot.match.awayTeam.teamName : 'TBD'}</td>
                                     </tr>
-                                    {week.map((timeslot, timeslotIndex) => (
-                                        <tr key={`${weekIndex}-${timeslotIndex}`}>
-                                            <td>{timeslot.week}</td>
-                                            <td>{timeslot.date}</td>
-                                            <td>{timeslot.startTime}</td>
-                                            <td>{timeslot.endTime}</td>
-                                            <td>{timeslot.match ? timeslot.match.homeTeam.teamName : 'TBD'}</td>
-                                            <td>{timeslot.match ? timeslot.match.awayTeam.teamName : 'TBD'}</td>
-                                        </tr>
-                                    ))}
-                                </>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+                                ))}
+                            </>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
             <div>
                 <button className="btn btn-danger" type="button" onClick={handleBack}>Back</button>
             </div>

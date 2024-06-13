@@ -4,13 +4,13 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import TeamListing from './TeamListing';
 import TeamCreate from './TeamCreate';
 import LeagueCreate from './LeagueCreate';
-import TeamEdit from './TeamEdit';
 import TeamDetail from './TeamDetail';
 import HomePage from './homePage';
 import DivisionCreate from './DivisionCreate';
 import LeagueEdit from './LeagueEdit';
 import TeamsView from './TeamsView';
 import TimeSlotCreate from './TimeslotCreate';
+import TeamEdit from './TeamEdit';
 
 function App() {
   return (
@@ -21,11 +21,11 @@ function App() {
           <Route path='/league/create' element={<LeagueCreate />}></Route>
           <Route path='/league/:id/create' element={<DivisionCreate />}></Route>
           <Route path='/team/detail/:teamid' element={<TeamDetail />}></Route>
-          <Route path='/team/edit/:teamid' element={<TeamEdit />}></Route>
           <Route path='/league/:id' element={<LeagueEdit />}></Route>
           <Route path="/league/:leagueID/division/:divisionID/teams" element={<TeamsView />} />
           <Route path = '/league/:leagueID/division/:divisionID/team' element={<TeamCreate/>}></Route>
           <Route path = '/league/:leagueID/division/:divisionID/timeslot' element={<TimeSlotCreate/>}></Route>
+          <Route path = '/league/:leagueID/division/:divisionID/team/:teamID' element={<TeamEdit/>}></Route>
         </Routes>
       </BrowserRouter>
     </div>
