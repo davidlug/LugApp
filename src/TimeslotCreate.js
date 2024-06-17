@@ -92,7 +92,7 @@ const TimeSlotCreate = () => {
                                     </div>
                                     <div className="col-lg-12">
                                         <div className="form-group">
-                                            <label>Rink</label>
+                                            <label>Rink/Field</label>
                                             <input value={rink} onChange={e => rinkChange(e.target.value)} className="form-control"></input>
                                         </div>
                                     </div>

@@ -1,10 +1,16 @@
 import './schedule.css';
-import { useEffect, useState, React } from "react";
+import { useEffect, useState, React, useRef } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import './Teams.css';
 import lugLogo from './lugLogo.png';
 import * as XLSX from 'xlsx';
 import Slider from '@mui/material/Slider';
+import { DownloadTableExcel } from 'react-export-table-to-excel';
+import * as FileSaver from 'file-saver';
+import XSLX from 'sheetjs-style';
+import { Tooltip } from 'bootstrap';
+import ExportAsExcel from 'react-export-table-to-excel'
+
 
 const TeamsView = () => {
     const { leagueID, divisionID } = useParams();
@@ -16,10 +22,23 @@ const TeamsView = () => {
     const [generatedSchedule, setGeneratedSchedule] = useState([]);
     const [value, setValue] = useState(0.1);
     const [selectedWeeks, setSelectedWeeks] = useState([]); // State for selected weeks
+    const tableRef = useRef(null);
 
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
+
+    const fileType = `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset-UTF-8`;
+    const fileExtension = '.xlsx';
+
+    const exportToExcel = async(excelData, fileName) => {
+        console.log(excelData);
+        const ws = XLSX.utils.json_to_sheet(excelData);
+        const wb = {Sheets: {'data':ws}, SheetNames:['data']};
+        const excelBuffer = XLSX.write(wb, {bookType: 'xlsx', type: 'array'});
+        const data = new Blob([excelBuffer],{type: fileType});
+        FileSaver.saveAs(data, fileName + fileExtension);
+    }
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
@@ -173,7 +192,9 @@ const TeamsView = () => {
     };
 
     const fetchLeagues = (value) => {
-        fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/schedule?balanceValue=${value}`)
+        console.log("Selected");
+        console.log(selectedWeeks);
+        fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/schedule?freezeWeeks=${selectedWeeks}`)
             .then((res) => res.json())
             .then((resp) => {
                 setGeneratedSchedule(resp.schedule || []);
@@ -306,8 +327,11 @@ const TeamsView = () => {
             </div>
 
             <div>
-                <h2>Lock Weeks:</h2>
                 <div className="week-buttons">
+                    <div>
+                        <h2>Lock Weeks:</h2>
+
+                    </div>
                     {generatedSchedule.map((_, weekIndex) => (
                         <button
                             key={weekIndex}
@@ -322,7 +346,7 @@ const TeamsView = () => {
 
             <div>
             <h2>Schedule</h2>
-            <table className='scheduleTable'>
+            <table className='scheduleTable' >
                 <thead>
                     <tr>
                         <th>Week</th>
@@ -355,6 +379,7 @@ const TeamsView = () => {
             </table>
         </div>
 
+            
             <div>
                 <button className="btn btn-danger" type="button" onClick={handleBack}>Back</button>
             </div>
