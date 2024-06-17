@@ -12,36 +12,40 @@ const TeamsView = () => {
     const [teams, setTeams] = useState([]);
     const navigate = useNavigate();
     const [timeslots, setTimeSlots] = useState([]);
-   // const [data, setData] = React.useState(null);
     const [data, setData] = useState("");
-
     const [generatedSchedule, setGeneratedSchedule] = useState([]);
+    const [value, setValue] = useState(0.1);
+    const [selectedWeeks, setSelectedWeeks] = useState([]); // State for selected weeks
+
+    const handleChange = (event, newValue) => {
+        setValue(newValue);
+    };
 
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
-    
+
         reader.onload = (event) => {
             const workbook = XLSX.read(event.target.result, { type: 'binary' });
             const sheetName = workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
             const sheetData = XLSX.utils.sheet_to_json(sheet);
-    
-            fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/teams`,{
-                method:"POST",
-                headers:{"Content-type":"application/json"},
-                body:JSON.stringify(sheetData)
+
+            fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/teams`, {
+                method: "POST",
+                headers: { "Content-type": "application/json" },
+                body: JSON.stringify(sheetData)
             }).then(response => response.json())
-              .then(data => { 
-                  console.log('Success:', data);
-                  alert("Teams successfully added"); 
-                  window.location.reload();
+                .then(data => {
+                    console.log('Success:', data);
+                    alert("Teams successfully added");
+                    window.location.reload();
                 })
-              .catch(error => {
-                  console.error('Error:', error);
-              });
+                .catch(error => {
+                    console.error('Error:', error);
+                });
         };
-    
+
         reader.readAsBinaryString(file);
     };
 
@@ -62,72 +66,71 @@ const TeamsView = () => {
 
                 return {
                     ...item,
-                    date: formatDate(date), // Format as "YYYY-MM-DD"
+                    date: formatDate(date),
                     startTime: formatTime(startTime),
                     endTime: formatTime(endTime)
                 };
             });
 
-
-            fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/timeslots`,{
-                method:"POST",
-                headers:{"Content-type":"application/json"},
-                body:JSON.stringify(formattedData)
+            fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/timeslots`, {
+                method: "POST",
+                headers: { "Content-type": "application/json" },
+                body: JSON.stringify(formattedData)
             }).then(response => response.json())
-              .then(data => {
-                  console.log('Success:', data);
-                  alert("Timeslots successfully added");
-                  window.location.reload();
+                .then(data => {
+                    console.log('Success:', data);
+                    alert("Timeslots successfully added");
+                    window.location.reload();
                 })
-              .catch(error => {
-                  console.error('Error:', error);
-              });
+                .catch(error => {
+                    console.error('Error:', error);
+                });
 
             setData(formattedData);
         };
         reader.readAsBinaryString(file);
-
-
     }
-    
+
     const ExcelDateToJSDate = (serial) => {
         const utc_days = Math.floor(serial - 25569);
         const utc_value = utc_days * 86400;
         const date_info = new Date(utc_value * 1000);
-    
+
         const fractional_day = serial - Math.floor(serial) + 0.0000001;
-    
+
         let total_seconds = Math.floor(86400 * fractional_day);
         const seconds = total_seconds % 60;
-    
+
         total_seconds -= seconds;
         const hours = Math.floor(total_seconds / (60 * 60));
         const minutes = Math.floor(total_seconds / 60) % 60;
-    
+
         date_info.setHours(hours);
         date_info.setMinutes(minutes);
         date_info.setSeconds(seconds);
-    
+
         return date_info;
     };
-    
+
     const formatTime = (date) => {
         const hours = date.getHours();
         const minutes = date.getMinutes();
         const ampm = hours >= 12 ? 'PM' : 'AM';
-        const formattedHours = hours % 12 || 12; // Convert 0 to 12 for 12 AM
+        const formattedHours = hours % 12 || 12;
         const formattedMinutes = minutes.toString().padStart(2, '0');
         return `${formattedHours}:${formattedMinutes} ${ampm}`;
     };
-    
+
     const formatDate = (date) => {
         const year = date.getFullYear();
-        const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-indexed
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
         const day = date.getDate().toString().padStart(2, '0');
         return `${year}-${month}-${day}`;
     };
-    
 
+    const formatBoolean = (value) => {
+        return value ? "Yes" : "No";
+    }
 
     useEffect(() => {
         fetch(`http://localhost:8080/leagues/${leagueID}/divisions/${divisionID}/teams`)
@@ -169,8 +172,8 @@ const TeamsView = () => {
         }
     };
 
-    const fetchLeagues = () => {
-        fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/schedule`)
+    const fetchLeagues = (value) => {
+        fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/schedule?balanceValue=${value}`)
             .then((res) => res.json())
             .then((resp) => {
                 setGeneratedSchedule(resp.schedule || []);
@@ -178,6 +181,14 @@ const TeamsView = () => {
             .catch((err) => {
                 console.log(err.message);
             });
+    };
+
+    const toggleWeekSelection = (week) => {
+        setSelectedWeeks(prevSelectedWeeks =>
+            prevSelectedWeeks.includes(week)
+                ? prevSelectedWeeks.filter(w => w !== week)
+                : [...prevSelectedWeeks, week]
+        );
     };
 
     return (
@@ -202,7 +213,6 @@ const TeamsView = () => {
                                 <td>
                                     <a onClick={() => { RemoveTeam(leagueID, divisionID, team.id, team.teamName) }} className="btn btn-danger">Remove</a>
                                     <Link to={`/league/${leagueID}/division/${divisionID}/team/${team.id}`} className="btn btn-primary">Edit Team</Link>
-
                                 </td>
                             </tr>
                         ))
@@ -218,8 +228,6 @@ const TeamsView = () => {
                 <input type="file" onChange={handleFileUpload} />
             </div>
 
-
-
             <Link to={`/league/${leagueID}/division/${divisionID}/team`} className="btn btn-success">Add New Team (+)</Link>
             <h1>Time Slots</h1>
             <table>
@@ -231,6 +239,8 @@ const TeamsView = () => {
                         <th>End Time</th>
                         <th>Facility</th>
                         <th>Rink</th>
+                        <th>Premium Facility?</th>
+                        <th>Late Game?</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -243,6 +253,9 @@ const TeamsView = () => {
                                 <td>{timeslot.endTime}</td>
                                 <td>{timeslot.facility}</td>
                                 <td>{timeslot.rink}</td>
+                                <td>{formatBoolean(timeslot.premium)}</td>
+                                <td>{formatBoolean(timeslot.lateGame)}</td>
+                                <td><Link to={`/league/${leagueID}/division/${divisionID}/timeslot/${timeslot.id}`} className="btn btn-primary">Edit Timeslot</Link></td>
                             </tr>
                         ))
                     ) : (
@@ -263,46 +276,85 @@ const TeamsView = () => {
                 )}
             </div>
 
-            
-
-
             <div>
-                <button className="btn btn-success" type="button" onClick={fetchLeagues}>Generate Schedule</button>
+                <Slider
+                    aria-label="timeslotBalance"
+                    value={value}
+                    onChange={handleChange}
+                    min={0.1}
+                    max={30}
+                    step={0.1}
+                    sx={{
+                        width: 300,
+                        color: '#FFA500',
+                        '& .MuiSlider-thumb': {
+                            backgroundColor: '#FF8C00',
+                        },
+                        '& .MuiSlider-track': {
+                            backgroundColor: '#FFA500',
+                        },
+                        '& .MuiSlider-rail': {
+                            backgroundColor: 'rgb(255, 223, 186)',
+                        },
+                    }}
+                />
+                <div>Schedule Balance Threshold: {value}</div>
             </div>
+
             <div>
-                <h2>Schedule</h2>
-                <table className='scheduleTable'>
-                    <thead>
-                        <tr>
-                            <th>Week</th>
-                            <th>Date</th>
-                            <th>Start Time</th>
-                            <th>End Time</th>
-                            <th>Home Team</th>
-                            <th>Away Team</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {generatedSchedule.map((week, weekIndex) => (
-                            <>
-                                <tr key={`divider-${weekIndex}`} className="divider">
-                                    <td colSpan="6">Week {weekIndex + 1}</td>
+                <button className="btn btn-success" type="button" onClick={() => fetchLeagues(value)}>Generate Schedule</button>
+            </div>
+
+            <div>
+                <h2>Lock Weeks:</h2>
+                <div className="week-buttons">
+                    {generatedSchedule.map((_, weekIndex) => (
+                        <button
+                            key={weekIndex}
+                            onClick={() => toggleWeekSelection(weekIndex + 1)}
+                            className={`btn ${selectedWeeks.includes(weekIndex + 1) ? 'btn-primary' : 'btn-secondary'}`}
+                        >
+                            Week {weekIndex + 1}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div>
+            <h2>Schedule</h2>
+            <table className='scheduleTable'>
+                <thead>
+                    <tr>
+                        <th>Week</th>
+                        <th>Date</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                        <th>Home Team</th>
+                        <th>Away Team</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {generatedSchedule.map((week, weekIndex) => (
+                        <>
+                            <tr key={`divider-${weekIndex}`} className="divider">
+                                <td colSpan="6">Week {weekIndex + 1}</td>
+                            </tr>
+                            {week.map((timeslot, timeslotIndex) => (
+                                <tr key={`${weekIndex}-${timeslotIndex}`}>
+                                    <td>{timeslot.week}</td>
+                                    <td>{timeslot.date}</td>
+                                    <td>{timeslot.startTime}</td>
+                                    <td>{timeslot.endTime}</td>
+                                    <td>{timeslot.match ? timeslot.match.homeTeam.teamName : 'TBD'}</td>
+                                    <td>{timeslot.match ? timeslot.match.awayTeam.teamName : 'TBD'}</td>
                                 </tr>
-                                {week.map((timeslot, timeslotIndex) => (
-                                    <tr key={`${weekIndex}-${timeslotIndex}`}>
-                                        <td>{timeslot.week}</td>
-                                        <td>{timeslot.date}</td>
-                                        <td>{timeslot.startTime}</td>
-                                        <td>{timeslot.endTime}</td>
-                                        <td>{timeslot.match ? timeslot.match.homeTeam.teamName : 'TBD'}</td>
-                                        <td>{timeslot.match ? timeslot.match.awayTeam.teamName : 'TBD'}</td>
-                                    </tr>
-                                ))}
-                            </>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                            ))}
+                        </>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+
             <div>
                 <button className="btn btn-danger" type="button" onClick={handleBack}>Back</button>
             </div>
