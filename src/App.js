@@ -11,6 +11,7 @@ import LeagueEdit from './LeagueEdit';
 import TeamsView from './TeamsView';
 import TimeSlotCreate from './TimeslotCreate';
 import TeamEdit from './TeamEdit';
+import TimeslotEdit from './TimeslotEdit';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
           <Route path = '/league/:leagueID/division/:divisionID/team' element={<TeamCreate/>}></Route>
           <Route path = '/league/:leagueID/division/:divisionID/timeslot' element={<TimeSlotCreate/>}></Route>
           <Route path = '/league/:leagueID/division/:divisionID/team/:teamID' element={<TeamEdit/>}></Route>
+          <Route path = '/league/:leagueID/division/:divisionID/timeslot/:timeslotID' element={<TimeslotEdit/>}></Route>
         </Routes>
       </BrowserRouter>
     </div>

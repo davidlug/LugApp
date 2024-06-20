@@ -19,13 +19,14 @@ const TimeSlotCreate = () => {
     const [facility, facilityChange] = useState("");
     const [rink, rinkChange] = useState("");
     const [premium, premiumChange] = useState(false);
+    const [lateGame, lateGameChange] = useState(false);
     const navigate = useNavigate();
 
     const handlesubmit = (e) => {
         e.preventDefault();
         const formattedDate = date.toISOString().split('T')[0];
 
-        const timeslotData = { week, date: formattedDate, startTime, endTime, facility, rink, premium };
+        const timeslotData = { week, date: formattedDate, startTime, endTime, facility, rink, premium, lateGame};
         console.log("Submitted data: ", timeslotData);
         fetch(`http://localhost:8080/league/${leagueID}/division/${divisionID}/timeslot`, {
             method: "POST",
@@ -40,6 +41,8 @@ const TimeSlotCreate = () => {
         }).catch((err) => {
             console.log(err.message);
         });
+
+        
     }
 
     const handleBack = () => {
@@ -89,7 +92,7 @@ const TimeSlotCreate = () => {
                                     </div>
                                     <div className="col-lg-12">
                                         <div className="form-group">
-                                            <label>Rink</label>
+                                            <label>Rink/Field</label>
                                             <input value={rink} onChange={e => rinkChange(e.target.value)} className="form-control"></input>
                                         </div>
                                     </div>
@@ -97,8 +100,17 @@ const TimeSlotCreate = () => {
                                         <div className="form-group">
                                             <label>Premium?</label>
                                             <div>
-                                                <input type="radio" name="premium" value="true" checked={premium === true} onChange={() => premiumChange(true)} /> Yes
-                                                <input type="radio" name="premium" value="false" checked={premium === false} onChange={() => premiumChange(false)} /> No
+                                                <input type="radio" name="premium" value={true} checked={premium === true} onChange={() => premiumChange(true)} /> Yes
+                                                <input type="radio" name="premium" value={false} checked={premium === false} onChange={() => premiumChange(false)} /> No
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-lg-12">
+                                        <div className="form-group">
+                                            <label>Late Game?</label>
+                                            <div>
+                                                <input type="radio" name="premium" value={true} checked={premium === true} onChange={() => lateGameChange(true)} /> Yes
+                                                <input type="radio" name="premium" value={false} checked={premium === false} onChange={() => lateGameChange(false)} /> No
                                             </div>
                                         </div>
                                     </div>
