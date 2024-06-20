@@ -5,7 +5,7 @@ import './Teams.css';
 import lugLogo from './lugLogo.png';
 import * as XLSX from 'xlsx';
 import Slider from '@mui/material/Slider';
-import { DownloadTableExcel } from 'react-export-table-to-excel';
+import { useDownloadExcel } from 'react-export-table-to-excel';
 import * as FileSaver from 'file-saver';
 import XSLX from 'sheetjs-style';
 import { Tooltip } from 'bootstrap';
@@ -27,6 +27,12 @@ const TeamsView = () => {
     const handleChange = (event, newValue) => {
         setValue(newValue);
     };
+
+    const {onDownload} = useDownloadExcel({
+        currentTableRef:tableRef.current,
+        filename:'schedule',
+        sheet:"schedule"
+    })
 
     const fileType = `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset-UTF-8`;
     const fileExtension = '.xlsx';
@@ -174,9 +180,21 @@ const TeamsView = () => {
             });
     }, [leagueID, divisionID]);
 
+    useEffect(() => {
+        fetch(`http://localhost:8080/leagues/${leagueID}/divisions/${divisionID}/schedules`)
+        .then((res) => res.json())
+        .then((resp) => {
+            setGeneratedSchedule(resp.schedule || []);
+        })
+        .catch((err) => {
+            console.log(err.message);
+        });
+}, [leagueID, divisionID]);
+
     const handleBack = () => {
         navigate(-1);
     };
+
 
     const RemoveTeam = (leagueID, divisionID, teamID, teamName) => {
         if (window.confirm("Do you want to delete " + teamName + "?")) {
@@ -346,7 +364,7 @@ const TeamsView = () => {
 
             <div>
             <h2>Schedule</h2>
-            <table className='scheduleTable' >
+            <table className='scheduleTable' ref={tableRef} >
                 <thead>
                     <tr>
                         <th>Week</th>
@@ -379,6 +397,11 @@ const TeamsView = () => {
             </table>
         </div>
 
+                    <div>
+                        <button className='bg-blue-400 p-2'
+                        onClick={onDownload}
+                        >Export Schedule</button>
+                    </div>
             
             <div>
                 <button className="btn btn-danger" type="button" onClick={handleBack}>Back</button>
