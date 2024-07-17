@@ -31,6 +31,8 @@ const TimeslotEdit = () => {
                 rinkChange(resp.timeslot.rink);
                 premiumChange(resp.timeslot.premium);
                 lateGameChange(resp.timeslot.lateGame);
+                console.log("Extra");
+                console.log(resp.timeslot.additionalData);
             })
             .catch((err) => {
                 console.log("Error fetching timeslot data:", err);

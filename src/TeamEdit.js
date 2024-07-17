@@ -56,7 +56,7 @@ const TeamEdit = () => {
     return (
         <div>
             <h1>Edit "{teamName}"</h1>
-            <form onSubmit={handleSubmit}>
+            <form>
                 <div className="col-lg-12">
                     <div className="form-group">
                         <label>Team Name</label>
