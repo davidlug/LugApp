@@ -11,10 +11,10 @@ const TeamEdit = () => {
     const [validation, setValidation] = useState(false);
 
     useEffect(() => {
-        fetch(`http://localhost:8080/league/${leagueID}/Division/${divisionID}/team/${teamID}`)
+        fetch(`/league/${leagueID}/Division/${divisionID}/team/${teamID}`)
             .then((res) => res.json())
             .then((resp) => {
-                console.log(`http://localhost:8080/league/${leagueID}/Division/${divisionID}/team/${teamID}`)
+                console.log(`/league/${leagueID}/Division/${divisionID}/team/${teamID}`)
                 console.log(resp.team);
                 setTeamName(resp.team.teamName);
                 setPlayers(resp.team.Players);
@@ -33,7 +33,7 @@ const TeamEdit = () => {
         e.preventDefault(); // Prevent default form submission
         const teamData = { teamID, teamName, Players, Division };
 
-        fetch(`http://localhost:8080/league/${leagueID}/Division/${divisionID}/team/${teamID}`, {
+        fetch(`/league/${leagueID}/Division/${divisionID}/team/${teamID}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(teamData)

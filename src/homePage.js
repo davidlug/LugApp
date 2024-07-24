@@ -17,7 +17,7 @@ const HomePage = () => {
     }
 
     useEffect(() => {
-        fetch("http://localhost:8080/leagues").then((res) => {
+        fetch("/leagues").then((res) => {
             return res.json();
         }).then((resp) => {
             setLeagueData(resp);
