@@ -11,7 +11,7 @@ const LeagueEdit = () => {
     const navigate = useNavigate();
     
     useEffect(() => {
-        fetch(`http://localhost:8080/divisions/${id}`)
+        fetch(`/divisions/${id}`)
             .then((res) => res.json())
             .then((resp) => {
                 setDivisionData(resp.divisions);

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import './App.css';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import TeamListing from './TeamListing';
 import TeamCreate from './TeamCreate';
 import LeagueCreate from './LeagueCreate';
 import TeamDetail from './TeamDetail';
